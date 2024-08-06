@@ -11,9 +11,9 @@ class Transaction:
         return f"{self.sender} -> {self.recipient}: {self.amount}"
 
 class Block:
-    def __init__(self, transactions, previous_hash) -> None:
+    def __init__(self, records, previous_hash) -> None:
         self.timestamp = time.time()
-        self.transactions = transactions
+        self.records = records
         self.previous_hash = previous_hash
         self.nonce = 0
         self.hash = self.calculate_hash()
@@ -21,7 +21,7 @@ class Block:
     def calculate_hash(self) -> str:
         block_contents = (
             str(self.timestamp) +
-            str(self.transactions) + 
+            str(self.records) + 
             str(self.previous_hash) +
             str(self.nonce)
         )
@@ -33,6 +33,7 @@ class Block:
             self.nonce += 1
             self.hash = self.calculate_hash()
         print(f"Block mined: {self.hash}")
+        print(f"Nonce: {self.nonce}")
 
     def __str__(self):
         transactions_str = "/n".join(str(tx) for tx in self.transactions)
@@ -61,15 +62,43 @@ class Blockchain:
     
     def mine_pending_transactions(self, miner_reward_address):
         block = Block(self.pending_transactions, self.get_latest_block().hash)
-        
+        block.mine_block(self.difficulty)
 
-# Example usage
-tx1 = Transaction("Alice", "Bob", 50)
-tx2 = Transaction("Bob", "Charlie", 30)
-tx3 = Transaction("Charlie", "David", 10)
+        print("Block successfully mined!")
+        self.chain.append(block)
 
-block1 = Block([tx1, tx2], "0")
-print(block1)
+        self.pending_transactions = [
+            Transaction("System", miner_reward_address, self.mining_reward)
+        ]
 
-block2 = Block([tx3], block1.hash)
-print(block2)
+    def create_transaction(self, transaction):
+        self.pending_transactions.append(transaction)
+
+    def get_balance(self, address):
+        balance = 0
+        for block in self.chain:
+            for record in block.records:
+                if record.sender == address:
+                    balance -= record.amount
+                if record.recipient == address:
+                    balance += record.amount
+        return balance
+
+
+# Example usage:
+blockchain = Blockchain()
+
+blockchain.chain = [
+    Block([
+        Transaction("System", "Alice", 50),  # Alice receives 50 coins
+        Transaction("Alice", "Bob", 30),     # Alice sends 30 coins to Bob
+    ], "0"),
+    Block([
+        Transaction("Bob", "Charlie", 10),   # Bob sends 10 coins to Charlie
+        Transaction("System", "Alice", 5),   # Alice mines a block and receives 5 coins
+    ], "previous_hash")
+]
+
+print(f"Alice's balance: {blockchain.get_balance('Alice')}")
+print(f"Bob's balance: {blockchain.get_balance('Bob')}")
+print(f"Charlie's balance: {blockchain.get_balance('Charlie')}")
