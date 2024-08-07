@@ -33,7 +33,6 @@ class Block:
             self.nonce += 1
             self.hash = self.calculate_hash()
         print(f"Block mined: {self.hash}")
-        print(f"Nonce: {self.nonce}")
 
     def __str__(self):
         transactions_str = "/n".join(str(tx) for tx in self.transactions)
@@ -84,21 +83,38 @@ class Blockchain:
                     balance += record.amount
         return balance
 
+    def is_chain_valid(self):
+        for i in range(1, len(self.chain)):
+            current_block = self.chain[i]
+            previous_block = self.chain[i-1]
 
-# Example usage:
+            if current_block.hash != current_block.calculate_hash():
+                return False
+
+            if current_block.previous_hash != previous_block.hash:
+                return False
+
+        return True
+
+# Example usage
 blockchain = Blockchain()
 
-blockchain.chain = [
-    Block([
-        Transaction("System", "Alice", 50),  # Alice receives 50 coins
-        Transaction("Alice", "Bob", 30),     # Alice sends 30 coins to Bob
-    ], "0"),
-    Block([
-        Transaction("Bob", "Charlie", 10),   # Bob sends 10 coins to Charlie
-        Transaction("System", "Alice", 5),   # Alice mines a block and receives 5 coins
-    ], "previous_hash")
-]
+blockchain.create_transaction(Transaction("Alice", "Bob", 50))
+blockchain.create_transaction(Transaction("Bob", "Charlie", 30))
 
-print(f"Alice's balance: {blockchain.get_balance('Alice')}")
-print(f"Bob's balance: {blockchain.get_balance('Bob')}")
-print(f"Charlie's balance: {blockchain.get_balance('Charlie')}")
+print("Mining block 1...")
+blockchain.mine_pending_transactions("Miner1")
+
+blockchain.create_transaction(Transaction("Charlie", "Alice", 20))
+blockchain.create_transaction(Transaction("Bob", "Alice", 10))
+
+print("Mining block 2...")
+blockchain.mine_pending_transactions("Miner2")
+
+print(f"Balance of Alice: {blockchain.get_balance('Alice')}")
+print(f"Balance of Bob: {blockchain.get_balance('Bob')}")
+print(f"Balance of Charlie: {blockchain.get_balance('Charlie')}")
+print(f"Balance of Miner1: {blockchain.get_balance('Miner1')}")
+print(f"Balance of Miner2: {blockchain.get_balance('Miner2')}")
+
+print(f"Blockchain valid: {blockchain.is_chain_valid()}")
